@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function isStaff() {
+      return isSignedIn() && userRole() == 'staff';
+    }
+    function isCrew() {
+      return isSignedIn() && userRole() == 'crew';
+    }
+    function isAssignedCrew() {
+      return isCrew() &&
+        request.auth.uid in resource.data.get('assignedCrew', []);
+    }
+
+    match /users/{userId} {
+      allow read: if isStaff() || (isSignedIn() && request.auth.uid == userId);
+      allow write: if isStaff();
+    }
+
+    match /jobs/{jobId} {
+      allow read: if isStaff() || isAssignedCrew();
+      allow create: if isStaff();
+      allow update, delete: if isStaff();
+    }
+  }
+}
