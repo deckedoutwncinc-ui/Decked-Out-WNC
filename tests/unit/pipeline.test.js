@@ -65,3 +65,9 @@ test("unknown stage names never transition", () => {
   assert.equal(canTransition("NOT_A_STAGE", "WON"), false);
   assert.equal(canTransition("LEAD_IN", "NOT_A_STAGE"), false);
 });
+
+test("inherited Object properties are never valid stage names", () => {
+  assert.equal(canTransition("constructor", "WON"), false);
+  assert.equal(canTransition("toString", "WON"), false);
+  assert.equal(canTransition("hasOwnProperty", "WON"), false);
+});

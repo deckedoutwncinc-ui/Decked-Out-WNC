@@ -35,5 +35,5 @@ const TRANSITIONS = {
 };
 
 export function canTransition(from, to) {
-  return (TRANSITIONS[from] ?? []).includes(to);
+  return Object.hasOwn(TRANSITIONS, from) && TRANSITIONS[from].includes(to);
 }
