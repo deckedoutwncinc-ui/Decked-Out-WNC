@@ -123,3 +123,44 @@ test("unauthenticated user cannot upload a receipt file", async () => {
     storage.ref("jobs/job-1/receipts/test.jpg").put(bytes, { contentType: "image/jpeg" })
   );
 });
+
+test("staff cannot upload a receipt file larger than 15MB", async () => {
+  const storage = staffCtx().storage();
+  const bytes = new Uint8Array(16 * 1024 * 1024);
+  await assertFails(
+    storage.ref("jobs/job-1/receipts/too-big.jpg").put(bytes, { contentType: "image/jpeg" })
+  );
+});
+
+test("staff cannot upload a receipt file with a disallowed content type", async () => {
+  const storage = staffCtx().storage();
+  const bytes = new Uint8Array([1, 2, 3]);
+  await assertFails(
+    storage.ref("jobs/job-1/receipts/malware.exe").put(bytes, { contentType: "application/x-msdownload" })
+  );
+});
+
+test("crew cannot read another job's receipts either", async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const setupDb = ctx.firestore();
+    await setupDb.collection("jobs").doc("job-2").set({ status: "LEAD_IN", customerName: "B" });
+    await setupDb.collection("jobs").doc("job-2").collection("receipts").doc("r2").set({
+      amount: 5, vendor: "V", date: "2026-09-05", fileUrl: "x", uploadedBy: "staff-uid",
+    });
+  });
+  const db = crewCtx().firestore();
+  await assertFails(db.collection("jobs").doc("job-2").collection("receipts").doc("r2").get());
+});
+
+test("staff cannot write to a Storage path outside jobs/*/receipts/*", async () => {
+  const storage = staffCtx().storage();
+  const bytes = new Uint8Array([1, 2, 3]);
+  await assertFails(
+    storage.ref("some-other-path/file.jpg").put(bytes, { contentType: "image/jpeg" })
+  );
+});
+
+test("crew cannot read a receipt file from Storage", async () => {
+  const storage = crewCtx().storage();
+  await assertFails(storage.ref("jobs/job-1/receipts/test.jpg").getDownloadURL());
+});
