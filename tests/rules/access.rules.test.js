@@ -1,4 +1,4 @@
-import { test, before, after } from "node:test";
+import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
@@ -11,7 +11,7 @@ let testEnv;
 
 before(async () => {
   testEnv = await initializeTestEnvironment({
-    projectId: "deckedoutwnc",
+    projectId: "deckedoutwnc-test",
     firestore: {
       rules: fs.readFileSync("firestore.rules", "utf8"),
       host: "127.0.0.1",
@@ -22,6 +22,10 @@ before(async () => {
 
 after(async () => {
   await testEnv.cleanup();
+});
+
+beforeEach(async () => {
+  await testEnv.clearFirestore();
 });
 
 function staffCtx() {
@@ -114,10 +118,18 @@ test("staff can write to the users collection", async () => {
   );
 });
 
-test("crew listing the jobs collection does not throw, and excludes unassigned jobs", async () => {
+test("crew cannot run an unconstrained list query on jobs (Firestore rejects list queries it can't evaluate against the potential result set)", async () => {
   await seed();
   const db = crewCtx().firestore();
-  const snap = await assertSucceeds(db.collection("jobs").get());
+  await assertFails(db.collection("jobs").get());
+});
+
+test("crew CAN list jobs when the query is constrained to their own assignment", async () => {
+  await seed();
+  const db = crewCtx().firestore();
+  const snap = await assertSucceeds(
+    db.collection("jobs").where("assignedCrew", "array-contains", "crew-uid").get()
+  );
   const ids = snap.docs.map((d) => d.id);
   assert.equal(ids.includes("job-unassigned"), false);
   assert.equal(ids.includes("job-assigned"), true);

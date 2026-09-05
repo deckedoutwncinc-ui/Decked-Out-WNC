@@ -33,6 +33,13 @@ export async function updateJobStage(jobId, currentStatus, newStatus) {
   });
 }
 
+// NOTE: this unconstrained query only works for staff. A crew user's read
+// will always be denied by firestore.rules (Firestore rejects list queries
+// it can't evaluate against the potential result set when the rule needs
+// per-document data) — harmless today since crew has no assigned jobs to
+// see yet, but Phase 4 (crew scheduling) must switch this to a role-aware
+// query: unconstrained for staff, `where("assignedCrew","array-contains",uid)`
+// for crew, plus a composite index in firestore.indexes.json.
 export function listJobs(callback) {
   const q = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
   return onSnapshot(

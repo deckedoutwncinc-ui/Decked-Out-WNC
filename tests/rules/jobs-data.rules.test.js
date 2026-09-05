@@ -1,4 +1,4 @@
-import { test, before, after } from "node:test";
+import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { initializeTestEnvironment, assertFails } from "@firebase/rules-unit-testing";
@@ -15,14 +15,21 @@ before(async () => {
       port: 8080,
     },
   });
-  await testEnv.withSecurityRulesDisabled(async (ctx) => {
-    await ctx.firestore().collection("users").doc("staff-uid").set({ role: "staff", name: "Staff Person" });
-  });
   db = testEnv.authenticatedContext("staff-uid").firestore();
 });
 
 after(async () => {
   await testEnv.cleanup();
+});
+
+beforeEach(async () => {
+  await testEnv.clearFirestore();
+  // clearFirestore() wipes the staff-uid user doc too, so it must be
+  // re-seeded before every test, not just once in before() — otherwise
+  // isStaff() would deny every test after the first.
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await ctx.firestore().collection("users").doc("staff-uid").set({ role: "staff", name: "Staff Person" });
+  });
 });
 
 test("creating a lead writes status LEAD_IN", async () => {
