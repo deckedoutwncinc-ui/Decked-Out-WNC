@@ -11,7 +11,7 @@ let testEnv;
 
 before(async () => {
   testEnv = await initializeTestEnvironment({
-    projectId: "deckedoutwnc-test",
+    projectId: "deckedoutwnc",
     firestore: {
       rules: fs.readFileSync("firestore.rules", "utf8"),
       host: "127.0.0.1",
@@ -112,4 +112,13 @@ test("staff can write to the users collection", async () => {
   await assertSucceeds(
     db.collection("users").doc("new-uid").set({ role: "crew", name: "New Hire" })
   );
+});
+
+test("crew listing the jobs collection does not throw, and excludes unassigned jobs", async () => {
+  await seed();
+  const db = crewCtx().firestore();
+  const snap = await assertSucceeds(db.collection("jobs").get());
+  const ids = snap.docs.map((d) => d.id);
+  assert.equal(ids.includes("job-unassigned"), false);
+  assert.equal(ids.includes("job-assigned"), true);
 });

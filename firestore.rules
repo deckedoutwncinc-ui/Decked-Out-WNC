@@ -15,6 +15,7 @@ service cloud.firestore {
     }
     function isAssignedCrew() {
       return isCrew() &&
+        'assignedCrew' in resource.data &&
         request.auth.uid in resource.data.get('assignedCrew', []);
     }
 
