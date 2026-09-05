@@ -35,7 +35,14 @@ export async function updateJobStage(jobId, currentStatus, newStatus) {
 
 export function listJobs(callback) {
   const q = query(collection(db, "jobs"), orderBy("createdAt", "desc"));
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    },
+    (error) => {
+      console.error("listJobs snapshot error:", error);
+      callback([]);
+    }
+  );
 }
