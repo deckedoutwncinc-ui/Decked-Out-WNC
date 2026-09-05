@@ -190,7 +190,7 @@ function renderReceipts(receipts) {
     total += receipt.amount ?? 0;
     const row = document.createElement("div");
     row.className = "receipt-row";
-    row.textContent = `${formatDateMDY(receipt.date)} — ${receipt.vendor} — $${(receipt.amount ?? 0).toFixed(2)}`;
+    row.textContent = `${receipt.date ? formatDateMDY(receipt.date) : "—"} — ${receipt.vendor} — $${(receipt.amount ?? 0).toFixed(2)}`;
     if (typeof receipt.fileUrl === "string" && receipt.fileUrl.startsWith("https://")) {
       const link = document.createElement("a");
       link.href = receipt.fileUrl;
