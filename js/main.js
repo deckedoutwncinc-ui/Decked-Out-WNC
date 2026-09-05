@@ -3,6 +3,11 @@ import { createLead, updateJobStage, listJobs } from "./jobs.js";
 import { STAGES, canTransition } from "./pipeline.js";
 import { uploadReceipt, listReceipts } from "./receipts.js";
 
+function formatDateMDY(isoDate) {
+  const [year, month, day] = isoDate.split("-");
+  return `${month}/${day}/${year}`;
+}
+
 const loginView = document.getElementById("login-view");
 const appView = document.getElementById("app-view");
 const loginForm = document.getElementById("login-form");
@@ -154,6 +159,8 @@ function openJobDetail(job) {
   jobDetailSection.hidden = false;
   jobDetailTitle.textContent = job.customerName ?? "(no name)";
   jobDetailStatus.textContent = job.status;
+  receiptsList.innerHTML = "";
+  receiptsTotal.textContent = "";
 
   if (currentRole === "staff") {
     receiptsSection.hidden = false;
@@ -183,12 +190,15 @@ function renderReceipts(receipts) {
     total += receipt.amount ?? 0;
     const row = document.createElement("div");
     row.className = "receipt-row";
-    row.textContent = `${receipt.date} — ${receipt.vendor} — $${receipt.amount.toFixed(2)}`;
-    const link = document.createElement("a");
-    link.href = receipt.fileUrl;
-    link.target = "_blank";
-    link.textContent = " (view)";
-    row.appendChild(link);
+    row.textContent = `${formatDateMDY(receipt.date)} — ${receipt.vendor} — $${(receipt.amount ?? 0).toFixed(2)}`;
+    if (typeof receipt.fileUrl === "string" && receipt.fileUrl.startsWith("https://")) {
+      const link = document.createElement("a");
+      link.href = receipt.fileUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = " (view)";
+      row.appendChild(link);
+    }
     receiptsList.appendChild(row);
   }
   receiptsTotal.textContent = `Total: $${total.toFixed(2)}`;
