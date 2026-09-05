@@ -10,6 +10,7 @@ const signoutBtn = document.getElementById("signout-btn");
 const newLeadForm = document.getElementById("new-lead-form");
 const newLeadSection = document.getElementById("new-lead-section");
 const jobList = document.getElementById("job-list");
+const appError = document.getElementById("app-error");
 
 let unsubscribeJobs = null;
 let currentRole = null;
@@ -25,11 +26,16 @@ onAuthChange(async (user) => {
     appView.style.display = "none";
     return;
   }
-  currentRole = await getUserRole(user.uid);
-  loginView.style.display = "none";
-  appView.style.display = "block";
-  newLeadSection.style.display = currentRole === "staff" ? "block" : "none";
-  unsubscribeJobs = listJobs(renderJobs);
+  try {
+    currentRole = await getUserRole(user.uid);
+    loginView.style.display = "none";
+    appView.style.display = "block";
+    newLeadSection.style.display = currentRole === "staff" ? "block" : "none";
+    unsubscribeJobs = listJobs(renderJobs);
+  } catch (err) {
+    loginError.textContent = "There was a problem loading your account. Please try signing in again.";
+    await signOutUser();
+  }
 });
 
 loginForm.addEventListener("submit", async (e) => {
@@ -48,10 +54,15 @@ signoutBtn.addEventListener("click", () => signOutUser());
 
 newLeadForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+  appError.textContent = "";
   const customerName = document.getElementById("lead-customer-name").value;
   const address = document.getElementById("lead-address").value;
-  await createLead({ customerName, address });
-  newLeadForm.reset();
+  try {
+    await createLead({ customerName, address });
+    newLeadForm.reset();
+  } catch (err) {
+    appError.textContent = "Could not add lead: " + err.message;
+  }
 });
 
 function renderJobs(jobs) {
@@ -85,7 +96,13 @@ function renderJobs(jobs) {
         }
         select.addEventListener("change", async () => {
           if (!select.value) return;
-          await updateJobStage(job.id, job.status, select.value);
+          appError.textContent = "";
+          try {
+            await updateJobStage(job.id, job.status, select.value);
+          } catch (err) {
+            appError.textContent = "Could not update stage: " + err.message;
+            select.value = "";
+          }
         });
         card.appendChild(select);
       }
