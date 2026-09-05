@@ -1,6 +1,7 @@
 import { onAuthChange, signIn, signOutUser, getUserRole } from "./auth.js";
 import { createLead, updateJobStage, listJobs } from "./jobs.js";
 import { STAGES, canTransition } from "./pipeline.js";
+import { uploadReceipt, listReceipts } from "./receipts.js";
 
 const loginView = document.getElementById("login-view");
 const appView = document.getElementById("app-view");
@@ -11,9 +12,21 @@ const newLeadForm = document.getElementById("new-lead-form");
 const newLeadSection = document.getElementById("new-lead-section");
 const jobList = document.getElementById("job-list");
 const appError = document.getElementById("app-error");
+const pipelineSection = document.getElementById("pipeline-section");
+const jobDetailSection = document.getElementById("job-detail-section");
+const jobDetailTitle = document.getElementById("job-detail-title");
+const jobDetailStatus = document.getElementById("job-detail-status");
+const backToListBtn = document.getElementById("back-to-list-btn");
+const receiptsSection = document.getElementById("receipts-section");
+const receiptsStaffOnlyNotice = document.getElementById("receipts-staff-only-notice");
+const receiptsTotal = document.getElementById("receipts-total");
+const receiptsList = document.getElementById("receipts-list");
+const addReceiptForm = document.getElementById("add-receipt-form");
 
 let unsubscribeJobs = null;
 let currentRole = null;
+let unsubscribeReceipts = null;
+let currentJobId = null;
 
 onAuthChange(async (user) => {
   if (unsubscribeJobs) {
@@ -22,6 +35,7 @@ onAuthChange(async (user) => {
   }
   if (!user) {
     currentRole = null;
+    closeJobDetail();
     loginView.style.display = "block";
     appView.style.display = "none";
     return;
@@ -62,6 +76,23 @@ newLeadForm.addEventListener("submit", async (e) => {
     newLeadForm.reset();
   } catch (err) {
     appError.textContent = "Could not add lead: " + err.message;
+  }
+});
+
+backToListBtn.addEventListener("click", closeJobDetail);
+
+addReceiptForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  appError.textContent = "";
+  const amount = document.getElementById("receipt-amount").value;
+  const vendor = document.getElementById("receipt-vendor").value;
+  const date = document.getElementById("receipt-date").value;
+  const file = document.getElementById("receipt-file").files[0];
+  try {
+    await uploadReceipt(currentJobId, { amount, vendor, date, file });
+    addReceiptForm.reset();
+  } catch (err) {
+    appError.textContent = "Could not add receipt: " + err.message;
   }
 });
 
@@ -108,6 +139,57 @@ function renderJobs(jobs) {
       }
     }
 
+    const detailBtn = document.createElement("button");
+    detailBtn.textContent = "View Details";
+    detailBtn.addEventListener("click", () => openJobDetail(job));
+    card.appendChild(detailBtn);
+
     jobList.appendChild(card);
   }
+}
+
+function openJobDetail(job) {
+  currentJobId = job.id;
+  pipelineSection.hidden = true;
+  jobDetailSection.hidden = false;
+  jobDetailTitle.textContent = job.customerName ?? "(no name)";
+  jobDetailStatus.textContent = job.status;
+
+  if (currentRole === "staff") {
+    receiptsSection.hidden = false;
+    receiptsStaffOnlyNotice.hidden = true;
+    if (unsubscribeReceipts) unsubscribeReceipts();
+    unsubscribeReceipts = listReceipts(currentJobId, renderReceipts);
+  } else {
+    receiptsSection.hidden = true;
+    receiptsStaffOnlyNotice.hidden = false;
+  }
+}
+
+function closeJobDetail() {
+  if (unsubscribeReceipts) {
+    unsubscribeReceipts();
+    unsubscribeReceipts = null;
+  }
+  currentJobId = null;
+  jobDetailSection.hidden = true;
+  pipelineSection.hidden = false;
+}
+
+function renderReceipts(receipts) {
+  receiptsList.innerHTML = "";
+  let total = 0;
+  for (const receipt of receipts) {
+    total += receipt.amount ?? 0;
+    const row = document.createElement("div");
+    row.className = "receipt-row";
+    row.textContent = `${receipt.date} — ${receipt.vendor} — $${receipt.amount.toFixed(2)}`;
+    const link = document.createElement("a");
+    link.href = receipt.fileUrl;
+    link.target = "_blank";
+    link.textContent = " (view)";
+    row.appendChild(link);
+    receiptsList.appendChild(row);
+  }
+  receiptsTotal.textContent = `Total: $${total.toFixed(2)}`;
 }

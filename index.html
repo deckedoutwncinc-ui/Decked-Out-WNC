@@ -25,18 +25,42 @@
 
   <div id="app-view">
     <h1>Pipeline</h1>
-    <p id="app-error" style="color: red;"></p>
     <button id="signout-btn">Sign Out</button>
-    <div id="new-lead-section">
-      <h2>New Lead</h2>
-      <form id="new-lead-form">
-        <input type="text" id="lead-customer-name" placeholder="Customer name" required />
-        <input type="text" id="lead-address" placeholder="Job address" required />
-        <button type="submit">Add Lead</button>
-      </form>
+    <p id="app-error" style="color: red;"></p>
+
+    <div id="pipeline-section">
+      <div id="new-lead-section">
+        <h2>New Lead</h2>
+        <form id="new-lead-form">
+          <input type="text" id="lead-customer-name" placeholder="Customer name" required />
+          <input type="text" id="lead-address" placeholder="Job address" required />
+          <button type="submit">Add Lead</button>
+        </form>
+      </div>
+      <h2>Jobs</h2>
+      <div id="job-list"></div>
     </div>
-    <h2>Jobs</h2>
-    <div id="job-list"></div>
+
+    <div id="job-detail-section" hidden>
+      <button id="back-to-list-btn">&larr; Back to Pipeline</button>
+      <h2 id="job-detail-title"></h2>
+      <p id="job-detail-status" class="stage-badge"></p>
+
+      <div id="receipts-section">
+        <h3>Materials Receipts</h3>
+        <p id="receipts-total"></p>
+        <div id="receipts-list"></div>
+        <h4>Add Receipt</h4>
+        <form id="add-receipt-form">
+          <input type="number" id="receipt-amount" placeholder="Amount" step="0.01" min="0" required />
+          <input type="text" id="receipt-vendor" placeholder="Vendor" required />
+          <input type="date" id="receipt-date" required />
+          <input type="file" id="receipt-file" accept="image/*,application/pdf" capture="environment" required />
+          <button type="submit">Add Receipt</button>
+        </form>
+      </div>
+      <p id="receipts-staff-only-notice" hidden>Materials receipts are only visible to staff.</p>
+    </div>
   </div>
 
   <script type="module" src="js/main.js"></script>
