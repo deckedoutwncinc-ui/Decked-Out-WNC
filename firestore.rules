@@ -31,5 +31,9 @@ service cloud.firestore {
       allow create: if isStaff();
       allow update, delete: if isStaff();
     }
+
+    match /jobs/{jobId}/receipts/{receiptId} {
+      allow read, write: if isStaff();
+    }
   }
 }
