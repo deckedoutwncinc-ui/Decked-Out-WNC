@@ -26,8 +26,9 @@ before(async () => {
 beforeEach(async () => {
   await testEnv.clearFirestore();
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
-    await ctx.firestore().collection("users").doc("staff-uid").set({ role: "staff", name: "Staff Person" });
-    await ctx.firestore().collection("jobs").doc("job-1").set({ status: "JOB_SCHEDULED", customerName: "A" });
+    const setupDb = ctx.firestore();
+    await setupDb.collection("users").doc("staff-uid").set({ role: "staff", name: "Staff Person" });
+    await setupDb.collection("jobs").doc("job-1").set({ status: "JOB_SCHEDULED", customerName: "A" });
   });
   const ctx = testEnv.authenticatedContext("staff-uid");
   db = ctx.firestore();
