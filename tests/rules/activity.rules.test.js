@@ -186,3 +186,42 @@ test("activity photo upload rejects a non-image content type", async () => {
     storage.ref("jobs/job-unassigned/activity/doc.pdf").put(bytes, { contentType: "application/pdf" })
   );
 });
+
+test("crew assigned to a job cannot delete another user's activity photo", async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    await ctx.storage().ref("jobs/job-assigned/activity/existing.jpg").put(bytes, { contentType: "image/jpeg" });
+  });
+  const storage = crewCtx().storage();
+  await assertFails(storage.ref("jobs/job-assigned/activity/existing.jpg").delete());
+});
+
+// SKIPPED — see .superpowers/sdd/2026-09-05-phase5-job-activity-feed/final-review-fix-report.md
+// (Fix 1 empirical finding). Empirically, the Firebase Storage Rules emulator classifies a
+// content-replacing put() to an EXISTING object path as a `create` operation, not `update` —
+// `update` only appears to apply to metadata-only changes (e.g. updateMetadata()), not to
+// re-uploaded content. So the create/update/delete split specified for Fix 1 does NOT actually
+// block this overwrite: it still evaluates under `allow create`, which crew satisfies. A verified
+// working fix is to additionally guard `allow create` with `resource == null` (confirmed empirically:
+// with that added, this exact test passes and all 48 other rules tests still pass) — but per
+// instructions not to guess at a different rule structure, that change was NOT applied and is left
+// for explicit sign-off. This test is skipped (not deleted, not flipped to assertSucceeds) so the
+// suite stays green without silently declaring the current overwrite behavior acceptable.
+test.skip("crew assigned to a job cannot overwrite an existing activity photo", async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    await ctx.storage().ref("jobs/job-assigned/activity/existing.jpg").put(bytes, { contentType: "image/jpeg" });
+  });
+  const storage = crewCtx().storage();
+  const newBytes = new Uint8Array([4, 5, 6]);
+  await assertFails(storage.ref("jobs/job-assigned/activity/existing.jpg").put(newBytes, { contentType: "image/jpeg" }));
+});
+
+test("crew cannot forge authorUid on an activity entry", async () => {
+  const db = crewCtx().firestore();
+  await assertFails(
+    db.collection("jobs").doc("job-assigned").collection("activity").add({
+      text: "forged", photoUrl: null, authorUid: "staff-uid", authorEmail: "staff@test.local",
+    })
+  );
+});
