@@ -35,6 +35,9 @@ const receiptsStaffOnlyNotice = document.getElementById("receipts-staff-only-not
 const receiptsTotal = document.getElementById("receipts-total");
 const receiptsList = document.getElementById("receipts-list");
 const addReceiptForm = document.getElementById("add-receipt-form");
+const receiptPhotoBtn = document.getElementById("receipt-photo-btn");
+const receiptFileInput = document.getElementById("receipt-file");
+const receiptFileStatus = document.getElementById("receipt-file-status");
 
 let unsubscribeJobs = null;
 let currentRole = null;
@@ -94,16 +97,35 @@ newLeadForm.addEventListener("submit", async (e) => {
 
 backToListBtn.addEventListener("click", closeJobDetail);
 
+receiptPhotoBtn.addEventListener("click", () => receiptFileInput.click());
+
+receiptFileInput.addEventListener("change", () => {
+  const file = receiptFileInput.files[0];
+  if (file) {
+    receiptFileStatus.textContent = "Selected: " + file.name;
+    receiptFileStatus.classList.add("has-file");
+  } else {
+    receiptFileStatus.textContent = "No photo selected yet";
+    receiptFileStatus.classList.remove("has-file");
+  }
+});
+
 addReceiptForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   appError.textContent = "";
   const amount = document.getElementById("receipt-amount").value;
   const vendor = document.getElementById("receipt-vendor").value;
   const date = document.getElementById("receipt-date").value;
-  const file = document.getElementById("receipt-file").files[0];
+  const file = receiptFileInput.files[0];
+  if (!file) {
+    appError.textContent = "Add a receipt photo before saving.";
+    return;
+  }
   try {
     await uploadReceipt(currentJobId, { amount, vendor, date, file });
     addReceiptForm.reset();
+    receiptFileStatus.textContent = "No photo selected yet";
+    receiptFileStatus.classList.remove("has-file");
   } catch (err) {
     appError.textContent = "Could not add receipt: " + err.message;
   }
