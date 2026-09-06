@@ -296,7 +296,12 @@ function renderActivity(entries) {
     const row = document.createElement("div");
     row.className = "activity-entry";
 
-    if (entry.photoUrl) {
+    const isSafePhotoUrl =
+      typeof entry.photoUrl === "string" &&
+      (entry.photoUrl.startsWith("https://") ||
+        entry.photoUrl.startsWith("http://127.0.0.1:9199") ||
+        entry.photoUrl.startsWith("http://localhost:9199"));
+    if (isSafePhotoUrl) {
       const img = document.createElement("img");
       img.src = entry.photoUrl;
       img.alt = "Job photo";
