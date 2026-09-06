@@ -209,23 +209,58 @@
     #add-receipt-form .photo-capture-btn,
     #add-receipt-form #receipt-file-status { flex-basis: 100%; }
 
-    #job-list {
+    .pipeline-layout {
       display: flex;
-      gap: 1rem;
-      overflow-x: auto;
-      padding-bottom: 0.5rem;
+      gap: 1.5rem;
       align-items: flex-start;
     }
-    .board-column {
-      flex: 0 0 260px;
-      width: 260px;
+    #pipeline-sidebar {
+      flex: 0 0 200px;
+      width: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
     }
-    .board-column-header {
-      font-size: 1rem;
-      color: var(--slate);
-      margin: 0 0 0.6rem 0;
-      padding-bottom: 0.4rem;
-      border-bottom: 2px solid var(--plank-line);
+    #pipeline-content { flex: 1; min-width: 0; }
+
+    .filter-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      width: 100%;
+      background: var(--chalk);
+      border: 1px solid var(--plank-line);
+      border-radius: var(--r-btn);
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--bark);
+      cursor: pointer;
+      text-align: left;
+      transition: background .15s, border-color .15s;
+    }
+    .filter-btn:hover { border-color: var(--slate); }
+    .filter-btn.active {
+      background: var(--cedar);
+      border-color: var(--cedar);
+      color: var(--chalk);
+    }
+    .filter-count {
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(43,36,28,.08);
+      border-radius: var(--r-pill);
+      padding: 1px 8px;
+      flex-shrink: 0;
+    }
+    .filter-btn.active .filter-count { background: rgba(245,241,230,.25); }
+
+    @media (max-width: 700px) {
+      .pipeline-layout { flex-direction: column; }
+      #pipeline-sidebar { flex-direction: row; flex-wrap: wrap; width: 100%; }
+      .filter-btn { width: auto; flex: 1 1 auto; }
     }
 
     .job-card {
@@ -341,16 +376,21 @@
     <p id="app-error"></p>
 
     <div id="pipeline-section">
-      <div id="new-lead-section">
-        <h2>New Lead</h2>
-        <form id="new-lead-form">
-          <input type="text" id="lead-customer-name" placeholder="Customer name" required />
-          <input type="text" id="lead-address" placeholder="Job address" required />
-          <button type="submit" class="btn-primary">Add Lead</button>
-        </form>
+      <div class="pipeline-layout">
+        <aside id="pipeline-sidebar"></aside>
+        <div id="pipeline-content">
+          <div id="new-lead-section">
+            <h2>New Lead</h2>
+            <form id="new-lead-form">
+              <input type="text" id="lead-customer-name" placeholder="Customer name" required />
+              <input type="text" id="lead-address" placeholder="Job address" required />
+              <button type="submit" class="btn-primary">Add Lead</button>
+            </form>
+          </div>
+          <h2>Jobs</h2>
+          <div id="job-list"></div>
+        </div>
       </div>
-      <h2>Jobs</h2>
-      <div id="job-list"></div>
     </div>
 
     <div id="job-detail-section" hidden>

@@ -32,14 +32,18 @@ function stageBadgeClass(status) {
   return "stage-won";
 }
 
-const BOARD_COLUMNS = [
-  { title: "Leads & Bids", stages: ["LEAD_IN", "BID_SCHEDULED", "DESIGN_FEE", "BID_GIVEN"] },
-  { title: "Won — Contracting", stages: ["WON", "CONTRACT_SENT", "CONTRACT_SIGNED"] },
-  { title: "Deposit & Scheduling", stages: ["DEPOSIT_INVOICED", "DEPOSIT_PAID", "JOB_SCHEDULED"] },
-  { title: "In Progress & Billing", stages: ["IN_PROGRESS", "FINAL_INVOICE_SENT", "FINAL_PAYMENT_RECEIVED"] },
-  { title: "Complete", stages: ["COMPLETE"] },
-  { title: "Lost", stages: ["LOST"] },
+const PIPELINE_FILTERS = [
+  { key: "all", title: "All Jobs", stages: null },
+  { key: "leads-bids", title: "Leads & Bids", stages: ["LEAD_IN", "BID_SCHEDULED", "DESIGN_FEE", "BID_GIVEN"] },
+  { key: "won-contracting", title: "Won — Contracting", stages: ["WON", "CONTRACT_SENT", "CONTRACT_SIGNED"] },
+  { key: "deposit-scheduling", title: "Deposit & Scheduling", stages: ["DEPOSIT_INVOICED", "DEPOSIT_PAID", "JOB_SCHEDULED"] },
+  { key: "in-progress-billing", title: "In Progress & Billing", stages: ["IN_PROGRESS", "FINAL_INVOICE_SENT", "FINAL_PAYMENT_RECEIVED"] },
+  { key: "complete", title: "Complete", stages: ["COMPLETE"] },
+  { key: "lost", title: "Lost", stages: ["LOST"] },
 ];
+
+let currentFilter = "all";
+let lastJobs = [];
 
 const loginView = document.getElementById("login-view");
 const appView = document.getElementById("app-view");
@@ -49,6 +53,7 @@ const signoutBtn = document.getElementById("signout-btn");
 const newLeadForm = document.getElementById("new-lead-form");
 const newLeadSection = document.getElementById("new-lead-section");
 const jobList = document.getElementById("job-list");
+const pipelineSidebar = document.getElementById("pipeline-sidebar");
 const appError = document.getElementById("app-error");
 const pipelineSection = document.getElementById("pipeline-section");
 const jobDetailSection = document.getElementById("job-detail-section");
@@ -246,24 +251,47 @@ function buildJobCard(job) {
   return card;
 }
 
+function renderPipelineSidebar(jobs) {
+  pipelineSidebar.innerHTML = "";
+  for (const filter of PIPELINE_FILTERS) {
+    const count = filter.stages
+      ? jobs.filter((j) => filter.stages.includes(j.status)).length
+      : jobs.length;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "filter-btn" + (currentFilter === filter.key ? " active" : "");
+
+    const label = document.createElement("span");
+    label.textContent = filter.title;
+    btn.appendChild(label);
+
+    const countBadge = document.createElement("span");
+    countBadge.className = "filter-count";
+    countBadge.textContent = String(count);
+    btn.appendChild(countBadge);
+
+    btn.addEventListener("click", () => {
+      currentFilter = filter.key;
+      renderJobs(lastJobs);
+    });
+
+    pipelineSidebar.appendChild(btn);
+  }
+}
+
 function renderJobs(jobs) {
+  lastJobs = jobs;
+  renderPipelineSidebar(jobs);
+
+  const activeFilter = PIPELINE_FILTERS.find((f) => f.key === currentFilter) ?? PIPELINE_FILTERS[0];
+  const visibleJobs = activeFilter.stages
+    ? jobs.filter((j) => activeFilter.stages.includes(j.status))
+    : jobs;
+
   jobList.innerHTML = "";
-  for (const column of BOARD_COLUMNS) {
-    const columnJobs = jobs.filter((j) => column.stages.includes(j.status));
-
-    const columnEl = document.createElement("div");
-    columnEl.className = "board-column";
-
-    const header = document.createElement("h3");
-    header.className = "board-column-header";
-    header.textContent = `${column.title} (${columnJobs.length})`;
-    columnEl.appendChild(header);
-
-    for (const job of columnJobs) {
-      columnEl.appendChild(buildJobCard(job));
-    }
-
-    jobList.appendChild(columnEl);
+  for (const job of visibleJobs) {
+    jobList.appendChild(buildJobCard(job));
   }
 }
 
