@@ -8,6 +8,14 @@ function formatDateMDY(isoDate) {
   return `${month}/${day}/${year}`;
 }
 
+const OPEN_STAGES = new Set(["LEAD_IN", "BID_SCHEDULED", "DESIGN_FEE", "BID_GIVEN"]);
+
+function stageBadgeClass(status) {
+  if (status === "LOST") return "stage-lost";
+  if (OPEN_STAGES.has(status)) return "";
+  return "stage-won";
+}
+
 const loginView = document.getElementById("login-view");
 const appView = document.getElementById("app-view");
 const loginForm = document.getElementById("login-form");
@@ -112,7 +120,7 @@ function renderJobs(jobs) {
     card.appendChild(title);
 
     const badge = document.createElement("span");
-    badge.className = "stage-badge";
+    badge.className = "stage-badge " + stageBadgeClass(job.status);
     badge.textContent = job.status;
     card.appendChild(badge);
 
@@ -120,6 +128,7 @@ function renderJobs(jobs) {
       const nextStages = STAGES.filter((s) => canTransition(job.status, s));
       if (nextStages.length > 0) {
         const select = document.createElement("select");
+        select.className = "stage-select";
         const placeholder = document.createElement("option");
         placeholder.textContent = "Advance to...";
         placeholder.value = "";
@@ -145,6 +154,7 @@ function renderJobs(jobs) {
     }
 
     const detailBtn = document.createElement("button");
+    detailBtn.className = "btn-quiet";
     detailBtn.textContent = "View Details";
     detailBtn.addEventListener("click", () => openJobDetail(job));
     card.appendChild(detailBtn);
@@ -159,6 +169,7 @@ function openJobDetail(job) {
   jobDetailSection.hidden = false;
   jobDetailTitle.textContent = job.customerName ?? "(no name)";
   jobDetailStatus.textContent = job.status;
+  jobDetailStatus.className = "stage-badge " + stageBadgeClass(job.status);
   receiptsList.innerHTML = "";
   receiptsTotal.textContent = "";
 
@@ -191,7 +202,12 @@ function renderReceipts(receipts) {
     const row = document.createElement("div");
     row.className = "receipt-row";
     row.textContent = `${receipt.date ? formatDateMDY(receipt.date) : "—"} — ${receipt.vendor} — $${(receipt.amount ?? 0).toFixed(2)}`;
-    if (typeof receipt.fileUrl === "string" && receipt.fileUrl.startsWith("https://")) {
+    const isSafeFileUrl =
+      typeof receipt.fileUrl === "string" &&
+      (receipt.fileUrl.startsWith("https://") ||
+        receipt.fileUrl.startsWith("http://127.0.0.1:9199") ||
+        receipt.fileUrl.startsWith("http://localhost:9199"));
+    if (isSafeFileUrl) {
       const link = document.createElement("a");
       link.href = receipt.fileUrl;
       link.target = "_blank";
