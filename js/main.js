@@ -2,6 +2,7 @@ import { onAuthChange, signIn, signOutUser, getUserRole } from "./auth.js";
 import { createLead, updateJobStage, listJobs } from "./jobs.js";
 import { STAGES, canTransition } from "./pipeline.js";
 import { uploadReceipt, listReceipts } from "./receipts.js";
+import { postActivity, listActivity } from "./activity.js";
 
 function formatDateMDY(isoDate) {
   const [year, month, day] = isoDate.split("-");
@@ -38,10 +39,17 @@ const addReceiptForm = document.getElementById("add-receipt-form");
 const receiptPhotoBtn = document.getElementById("receipt-photo-btn");
 const receiptFileInput = document.getElementById("receipt-file");
 const receiptFileStatus = document.getElementById("receipt-file-status");
+const activityList = document.getElementById("activity-list");
+const addActivityForm = document.getElementById("add-activity-form");
+const activityTextInput = document.getElementById("activity-text");
+const activityPhotoBtn = document.getElementById("activity-photo-btn");
+const activityFileInput = document.getElementById("activity-file");
+const activityFileStatus = document.getElementById("activity-file-status");
 
 let unsubscribeJobs = null;
 let currentRole = null;
 let unsubscribeReceipts = null;
+let unsubscribeActivity = null;
 let currentJobId = null;
 
 onAuthChange(async (user) => {
@@ -110,6 +118,19 @@ receiptFileInput.addEventListener("change", () => {
   }
 });
 
+activityPhotoBtn.addEventListener("click", () => activityFileInput.click());
+
+activityFileInput.addEventListener("change", () => {
+  const file = activityFileInput.files[0];
+  if (file) {
+    activityFileStatus.textContent = "Selected: " + file.name;
+    activityFileStatus.classList.add("has-file");
+  } else {
+    activityFileStatus.textContent = "No photo selected yet";
+    activityFileStatus.classList.remove("has-file");
+  }
+});
+
 addReceiptForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   appError.textContent = "";
@@ -128,6 +149,25 @@ addReceiptForm.addEventListener("submit", async (e) => {
     receiptFileStatus.classList.remove("has-file");
   } catch (err) {
     appError.textContent = "Could not add receipt: " + err.message;
+  }
+});
+
+addActivityForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  appError.textContent = "";
+  const text = activityTextInput.value.trim();
+  const file = activityFileInput.files[0];
+  if (!text && !file) {
+    appError.textContent = "Add a note or a photo before posting.";
+    return;
+  }
+  try {
+    await postActivity(currentJobId, { text: text || null, file: file || null });
+    addActivityForm.reset();
+    activityFileStatus.textContent = "No photo selected yet";
+    activityFileStatus.classList.remove("has-file");
+  } catch (err) {
+    appError.textContent = "Could not post update: " + err.message;
   }
 });
 
@@ -204,12 +244,20 @@ function openJobDetail(job) {
     receiptsSection.hidden = true;
     receiptsStaffOnlyNotice.hidden = false;
   }
+
+  if (unsubscribeActivity) unsubscribeActivity();
+  activityList.innerHTML = "";
+  unsubscribeActivity = listActivity(currentJobId, renderActivity);
 }
 
 function closeJobDetail() {
   if (unsubscribeReceipts) {
     unsubscribeReceipts();
     unsubscribeReceipts = null;
+  }
+  if (unsubscribeActivity) {
+    unsubscribeActivity();
+    unsubscribeActivity = null;
   }
   currentJobId = null;
   jobDetailSection.hidden = true;
@@ -240,4 +288,35 @@ function renderReceipts(receipts) {
     receiptsList.appendChild(row);
   }
   receiptsTotal.textContent = `Total: $${total.toFixed(2)}`;
+}
+
+function renderActivity(entries) {
+  activityList.innerHTML = "";
+  for (const entry of entries) {
+    const row = document.createElement("div");
+    row.className = "activity-entry";
+
+    if (entry.photoUrl) {
+      const img = document.createElement("img");
+      img.src = entry.photoUrl;
+      img.alt = "Job photo";
+      row.appendChild(img);
+    }
+
+    const body = document.createElement("div");
+    body.className = "activity-body";
+    if (entry.text) {
+      const p = document.createElement("p");
+      p.style.margin = "0";
+      p.textContent = entry.text;
+      body.appendChild(p);
+    }
+    const meta = document.createElement("p");
+    meta.className = "activity-meta";
+    meta.textContent = entry.authorEmail ?? "Unknown";
+    body.appendChild(meta);
+    row.appendChild(body);
+
+    activityList.appendChild(row);
+  }
 }

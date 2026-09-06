@@ -74,7 +74,7 @@
 
     /* ---- Shared form controls ---- */
     input[type="email"], input[type="password"], input[type="text"],
-    input[type="number"], input[type="date"], input[type="file"] {
+    input[type="number"], input[type="date"], input[type="file"], textarea {
       font-family: inherit;
       font-size: 0.95rem;
       color: var(--bark);
@@ -91,7 +91,7 @@
     }
     #app-view input[type="email"], #app-view input[type="password"],
     #app-view input[type="text"], #app-view input[type="number"],
-    #app-view input[type="date"], #app-view input[type="file"] {
+    #app-view input[type="date"], #app-view input[type="file"], #app-view textarea {
       background: #fff;
     }
 
@@ -269,6 +269,36 @@
       font-size: 0.9rem;
     }
 
+    textarea {
+      font-family: inherit;
+      resize: vertical;
+      width: 100%;
+    }
+
+    .activity-entry {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--plank-line);
+    }
+    .activity-entry:last-of-type { border-bottom: none; }
+    .activity-entry img {
+      width: 64px;
+      height: 64px;
+      object-fit: cover;
+      border-radius: var(--r-btn);
+      border: 1px solid var(--plank-line);
+      flex-shrink: 0;
+    }
+    .activity-entry .activity-body { flex: 1; font-size: 0.92rem; }
+    .activity-entry .activity-meta {
+      font-size: 0.78rem;
+      color: var(--slate);
+      margin-top: 2px;
+    }
+
+    #add-activity-form { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.75rem; }
+
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; }
     }
@@ -324,6 +354,18 @@
         </form>
       </div>
       <p id="receipts-staff-only-notice" hidden>Materials receipts are only visible to staff.</p>
+
+      <div id="activity-section">
+        <h3>Job Activity</h3>
+        <div id="activity-list"></div>
+        <form id="add-activity-form">
+          <textarea id="activity-text" placeholder="Add a note (optional)..." rows="2"></textarea>
+          <button type="button" id="activity-photo-btn" class="photo-capture-btn">📷 Add Photo</button>
+          <input type="file" id="activity-file" accept="image/*" hidden />
+          <p id="activity-file-status">No photo selected yet</p>
+          <button type="submit" class="btn-primary">Post Update</button>
+        </form>
+      </div>
     </div>
   </div>
 
