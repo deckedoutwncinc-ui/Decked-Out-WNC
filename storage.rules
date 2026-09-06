@@ -6,12 +6,28 @@ service firebase.storage {
         firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('role', '') == 'staff';
     }
+    function isCrew() {
+      return request.auth != null &&
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('role', '') == 'crew';
+    }
+    function isAssignedToJob(jobId) {
+      return isCrew() &&
+        request.auth.uid in firestore.get(/databases/(default)/documents/jobs/$(jobId)).data.get('assignedCrew', []);
+    }
 
     match /jobs/{jobId}/receipts/{fileName} {
       allow read: if isStaff();
       allow write: if isStaff()
         && request.resource.size < 15 * 1024 * 1024
         && request.resource.contentType.matches('image/.*|application/pdf');
+    }
+
+    match /jobs/{jobId}/activity/{fileName} {
+      allow read: if isStaff() || isAssignedToJob(jobId);
+      allow write: if (isStaff() || isAssignedToJob(jobId))
+        && request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
     }
 
     match /{allPaths=**} {

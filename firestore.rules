@@ -35,5 +35,15 @@ service cloud.firestore {
     match /jobs/{jobId}/receipts/{receiptId} {
       allow read, write: if isStaff();
     }
+
+    match /jobs/{jobId}/activity/{entryId} {
+      function isAssignedToJob() {
+        return isCrew() &&
+          request.auth.uid in get(/databases/$(database)/documents/jobs/$(jobId)).data.get('assignedCrew', []);
+      }
+      allow read, create: if isStaff() || isAssignedToJob();
+      allow update: if false;
+      allow delete: if isStaff();
+    }
   }
 }
