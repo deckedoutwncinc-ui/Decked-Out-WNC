@@ -26,6 +26,7 @@ service firebase.storage {
     match /jobs/{jobId}/activity/{fileName} {
       allow read: if isStaff() || isAssignedToJob(jobId);
       allow create: if (isStaff() || isAssignedToJob(jobId))
+        && resource == null
         && request.resource.size < 15 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
       allow update: if false;
