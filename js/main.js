@@ -32,6 +32,15 @@ function stageBadgeClass(status) {
   return "stage-won";
 }
 
+const BOARD_COLUMNS = [
+  { title: "Leads & Bids", stages: ["LEAD_IN", "BID_SCHEDULED", "DESIGN_FEE", "BID_GIVEN"] },
+  { title: "Won — Contracting", stages: ["WON", "CONTRACT_SENT", "CONTRACT_SIGNED"] },
+  { title: "Deposit & Scheduling", stages: ["DEPOSIT_INVOICED", "DEPOSIT_PAID", "JOB_SCHEDULED"] },
+  { title: "In Progress & Billing", stages: ["IN_PROGRESS", "FINAL_INVOICE_SENT", "FINAL_PAYMENT_RECEIVED"] },
+  { title: "Complete", stages: ["COMPLETE"] },
+  { title: "Lost", stages: ["LOST"] },
+];
+
 const loginView = document.getElementById("login-view");
 const appView = document.getElementById("app-view");
 const loginForm = document.getElementById("login-form");
@@ -186,57 +195,75 @@ addActivityForm.addEventListener("submit", async (e) => {
   }
 });
 
+function buildJobCard(job) {
+  const card = document.createElement("div");
+  card.className = "job-card";
+
+  const title = document.createElement("h3");
+  title.textContent = job.customerName ?? "(no name)";
+  card.appendChild(title);
+
+  const badge = document.createElement("span");
+  badge.className = "stage-badge " + stageBadgeClass(job.status);
+  badge.textContent = job.status;
+  card.appendChild(badge);
+
+  if (currentRole === "staff") {
+    const nextStages = STAGES.filter((s) => canTransition(job.status, s));
+    if (nextStages.length > 0) {
+      const select = document.createElement("select");
+      select.className = "stage-select";
+      const placeholder = document.createElement("option");
+      placeholder.textContent = "Advance to...";
+      placeholder.value = "";
+      select.appendChild(placeholder);
+      for (const stage of nextStages) {
+        const opt = document.createElement("option");
+        opt.value = stage;
+        opt.textContent = stage;
+        select.appendChild(opt);
+      }
+      select.addEventListener("change", async () => {
+        if (!select.value) return;
+        appError.textContent = "";
+        try {
+          await updateJobStage(job.id, job.status, select.value);
+        } catch (err) {
+          appError.textContent = "Could not update stage: " + err.message;
+          select.value = "";
+        }
+      });
+      card.appendChild(select);
+    }
+  }
+
+  const detailBtn = document.createElement("button");
+  detailBtn.className = "btn-quiet";
+  detailBtn.textContent = "View Details";
+  detailBtn.addEventListener("click", () => openJobDetail(job));
+  card.appendChild(detailBtn);
+
+  return card;
+}
+
 function renderJobs(jobs) {
   jobList.innerHTML = "";
-  for (const job of jobs) {
-    const card = document.createElement("div");
-    card.className = "job-card";
+  for (const column of BOARD_COLUMNS) {
+    const columnJobs = jobs.filter((j) => column.stages.includes(j.status));
 
-    const title = document.createElement("h3");
-    title.textContent = job.customerName ?? "(no name)";
-    card.appendChild(title);
+    const columnEl = document.createElement("div");
+    columnEl.className = "board-column";
 
-    const badge = document.createElement("span");
-    badge.className = "stage-badge " + stageBadgeClass(job.status);
-    badge.textContent = job.status;
-    card.appendChild(badge);
+    const header = document.createElement("h3");
+    header.className = "board-column-header";
+    header.textContent = `${column.title} (${columnJobs.length})`;
+    columnEl.appendChild(header);
 
-    if (currentRole === "staff") {
-      const nextStages = STAGES.filter((s) => canTransition(job.status, s));
-      if (nextStages.length > 0) {
-        const select = document.createElement("select");
-        select.className = "stage-select";
-        const placeholder = document.createElement("option");
-        placeholder.textContent = "Advance to...";
-        placeholder.value = "";
-        select.appendChild(placeholder);
-        for (const stage of nextStages) {
-          const opt = document.createElement("option");
-          opt.value = stage;
-          opt.textContent = stage;
-          select.appendChild(opt);
-        }
-        select.addEventListener("change", async () => {
-          if (!select.value) return;
-          appError.textContent = "";
-          try {
-            await updateJobStage(job.id, job.status, select.value);
-          } catch (err) {
-            appError.textContent = "Could not update stage: " + err.message;
-            select.value = "";
-          }
-        });
-        card.appendChild(select);
-      }
+    for (const job of columnJobs) {
+      columnEl.appendChild(buildJobCard(job));
     }
 
-    const detailBtn = document.createElement("button");
-    detailBtn.className = "btn-quiet";
-    detailBtn.textContent = "View Details";
-    detailBtn.addEventListener("click", () => openJobDetail(job));
-    card.appendChild(detailBtn);
-
-    jobList.appendChild(card);
+    jobList.appendChild(columnEl);
   }
 }
 
