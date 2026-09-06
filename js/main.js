@@ -9,6 +9,21 @@ function formatDateMDY(isoDate) {
   return `${month}/${day}/${year}`;
 }
 
+function isSafeStorageUrl(url) {
+  if (typeof url !== "string") return false;
+  return (
+    url.startsWith("https://firebasestorage.googleapis.com/v0/b/deckedoutwnc.firebasestorage.app/") ||
+    url.startsWith("http://127.0.0.1:9199/v0/b/deckedoutwnc.firebasestorage.app/") ||
+    url.startsWith("http://localhost:9199/v0/b/deckedoutwnc.firebasestorage.app/")
+  );
+}
+
+function formatEntryTimestamp(createdAt) {
+  if (!createdAt || typeof createdAt.toDate !== "function") return "";
+  const iso = createdAt.toDate().toISOString().slice(0, 10);
+  return formatDateMDY(iso);
+}
+
 const OPEN_STAGES = new Set(["LEAD_IN", "BID_SCHEDULED", "DESIGN_FEE", "BID_GIVEN"]);
 
 function stageBadgeClass(status) {
@@ -272,12 +287,7 @@ function renderReceipts(receipts) {
     const row = document.createElement("div");
     row.className = "receipt-row";
     row.textContent = `${receipt.date ? formatDateMDY(receipt.date) : "—"} — ${receipt.vendor} — $${(receipt.amount ?? 0).toFixed(2)}`;
-    const isSafeFileUrl =
-      typeof receipt.fileUrl === "string" &&
-      (receipt.fileUrl.startsWith("https://") ||
-        receipt.fileUrl.startsWith("http://127.0.0.1:9199") ||
-        receipt.fileUrl.startsWith("http://localhost:9199"));
-    if (isSafeFileUrl) {
+    if (isSafeStorageUrl(receipt.fileUrl)) {
       const link = document.createElement("a");
       link.href = receipt.fileUrl;
       link.target = "_blank";
@@ -296,12 +306,7 @@ function renderActivity(entries) {
     const row = document.createElement("div");
     row.className = "activity-entry";
 
-    const isSafePhotoUrl =
-      typeof entry.photoUrl === "string" &&
-      (entry.photoUrl.startsWith("https://") ||
-        entry.photoUrl.startsWith("http://127.0.0.1:9199") ||
-        entry.photoUrl.startsWith("http://localhost:9199"));
-    if (isSafePhotoUrl) {
+    if (isSafeStorageUrl(entry.photoUrl)) {
       const img = document.createElement("img");
       img.src = entry.photoUrl;
       img.alt = "Job photo";
@@ -318,7 +323,8 @@ function renderActivity(entries) {
     }
     const meta = document.createElement("p");
     meta.className = "activity-meta";
-    meta.textContent = entry.authorEmail ?? "Unknown";
+    const dateStr = formatEntryTimestamp(entry.createdAt);
+    meta.textContent = (entry.authorEmail ?? "Unknown") + (dateStr ? " — " + dateStr : "");
     body.appendChild(meta);
     row.appendChild(body);
 
