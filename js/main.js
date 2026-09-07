@@ -1,6 +1,6 @@
 import { onAuthChange, signIn, signOutUser, getUserRole } from "./auth.js";
 import { createLead, updateJobStage, updateJobDetails, listJobs } from "./jobs.js";
-import { STAGES, canTransition } from "./pipeline.js";
+import { STAGES, canManuallyTransition } from "./pipeline.js";
 import { uploadReceipt, listReceipts } from "./receipts.js";
 import { postActivity, listActivity } from "./activity.js";
 import { sendContract, resendContractLink, resendContractPdf, getContractPdfUrl, listContract } from "./contracts.js";
@@ -322,7 +322,7 @@ function buildJobCard(job) {
   card.appendChild(notes);
 
   if (currentRole === "staff") {
-    const nextStages = STAGES.filter((s) => canTransition(job.status, s));
+    const nextStages = STAGES.filter((s) => canManuallyTransition(job.status, s));
     if (nextStages.length > 0) {
       const select = document.createElement("select");
       select.className = "stage-select";

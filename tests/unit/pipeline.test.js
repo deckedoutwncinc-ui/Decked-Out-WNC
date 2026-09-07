@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { STAGES, canTransition } from "../../js/pipeline.js";
+import { STAGES, canTransition, canManuallyTransition } from "../../js/pipeline.js";
 
 test("STAGES includes every pipeline stage in order", () => {
   assert.deepEqual(STAGES, [
@@ -70,4 +70,19 @@ test("inherited Object properties are never valid stage names", () => {
   assert.equal(canTransition("constructor", "WON"), false);
   assert.equal(canTransition("toString", "WON"), false);
   assert.equal(canTransition("hasOwnProperty", "WON"), false);
+});
+
+test("canManuallyTransition excludes the two contract-driven transitions", () => {
+  assert.equal(canManuallyTransition("WON", "CONTRACT_SENT"), false);
+  assert.equal(canManuallyTransition("CONTRACT_SENT", "CONTRACT_SIGNED"), false);
+});
+
+test("canManuallyTransition still allows every other valid transition", () => {
+  assert.equal(canManuallyTransition("LEAD_IN", "BID_SCHEDULED"), true);
+  assert.equal(canManuallyTransition("CONTRACT_SIGNED", "DEPOSIT_INVOICED"), true);
+  assert.equal(canManuallyTransition("BID_GIVEN", "LOST"), true);
+});
+
+test("canManuallyTransition still rejects invalid transitions", () => {
+  assert.equal(canManuallyTransition("LEAD_IN", "COMPLETE"), false);
 });

@@ -37,3 +37,9 @@ const TRANSITIONS = {
 export function canTransition(from, to) {
   return Object.hasOwn(TRANSITIONS, from) && TRANSITIONS[from].includes(to);
 }
+
+const MANUALLY_EXCLUDED_TRANSITIONS = new Set(["WON:CONTRACT_SENT", "CONTRACT_SENT:CONTRACT_SIGNED"]);
+
+export function canManuallyTransition(from, to) {
+  return canTransition(from, to) && !MANUALLY_EXCLUDED_TRANSITIONS.has(`${from}:${to}`);
+}
