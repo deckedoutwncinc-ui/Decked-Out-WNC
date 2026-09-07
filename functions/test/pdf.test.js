@@ -18,3 +18,16 @@ test("generateContractPdf produces a valid PDF buffer", async () => {
   assert.ok(Buffer.isBuffer(buffer));
   assert.equal(buffer.subarray(0, 4).toString(), "%PDF");
 });
+
+test("generateContractPdf paginates a long contract across multiple pages", async () => {
+  const longText = Array(80).fill("This is a line of contract text that repeats to force pagination.").join("\n");
+  const buffer = await generateContractPdf({
+    contractText: longText,
+    signatureImageBuffer: TINY_PNG,
+    signerName: "Jane Doe",
+    signedAt: "09/07/2026",
+  });
+  const { PDFDocument } = await import("pdf-lib");
+  const reloaded = await PDFDocument.load(buffer);
+  assert.ok(reloaded.getPageCount() >= 2);
+});
