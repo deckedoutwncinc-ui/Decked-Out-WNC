@@ -199,15 +199,16 @@
       padding: 1.1rem 1.25rem;
       margin-bottom: 1.5rem;
     }
-    #new-lead-form, #add-receipt-form {
+    #new-lead-form, #add-receipt-form, #edit-job-form {
       display: flex;
       flex-wrap: wrap;
       gap: 0.6rem;
       align-items: center;
     }
-    #new-lead-form input, #add-receipt-form input { flex: 1 1 160px; }
-    #new-lead-form textarea { flex-basis: 100%; min-height: 60px; }
-    #new-lead-form button, #add-receipt-form button { flex: 0 0 auto; }
+    #edit-job-form[hidden] { display: none; }
+    #new-lead-form input, #add-receipt-form input, #edit-job-form input { flex: 1 1 160px; }
+    #new-lead-form textarea, #edit-job-form textarea { flex-basis: 100%; min-height: 60px; }
+    #new-lead-form button, #add-receipt-form button, #edit-job-form button { flex: 0 0 auto; }
     #add-receipt-form .photo-capture-btn,
     #add-receipt-form #receipt-file-status { flex-basis: 100%; }
 
@@ -316,6 +317,8 @@
 
     #job-detail-section #back-to-list-btn { margin-bottom: 1rem; }
     #job-detail-title { margin-bottom: 0.3rem; }
+    #job-detail-view #edit-job-btn { margin-top: 0.75rem; }
+    #edit-job-form { margin-top: 0.75rem; }
 
     #receipts-section {
       background: var(--chalk);
@@ -424,6 +427,22 @@
       <button id="back-to-list-btn" class="btn-quiet">&larr; Back to Pipeline</button>
       <h2 id="job-detail-title"></h2>
       <p id="job-detail-status" class="stage-badge"></p>
+
+      <div id="job-detail-view">
+        <div id="job-detail-info" class="job-card-info"></div>
+        <div id="job-detail-notes" class="job-card-notes" hidden></div>
+        <button id="edit-job-btn" class="btn-quiet">Edit Info</button>
+      </div>
+
+      <form id="edit-job-form" hidden>
+        <input type="text" id="edit-customer-name" placeholder="Customer name" required />
+        <input type="text" id="edit-address" placeholder="Job address" required />
+        <input type="tel" id="edit-phone" placeholder="Phone" required />
+        <input type="email" id="edit-email" placeholder="Email" required />
+        <textarea id="edit-notes" placeholder="Special notes" required></textarea>
+        <button type="submit" class="btn-primary">Save Changes</button>
+        <button type="button" id="cancel-edit-btn" class="btn-quiet">Cancel</button>
+      </form>
 
       <div id="receipts-section">
         <h3>Materials Receipts</h3>

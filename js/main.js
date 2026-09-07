@@ -1,5 +1,5 @@
 import { onAuthChange, signIn, signOutUser, getUserRole } from "./auth.js";
-import { createLead, updateJobStage, listJobs } from "./jobs.js";
+import { createLead, updateJobStage, updateJobDetails, listJobs } from "./jobs.js";
 import { STAGES, canTransition } from "./pipeline.js";
 import { uploadReceipt, listReceipts } from "./receipts.js";
 import { postActivity, listActivity } from "./activity.js";
@@ -60,6 +60,12 @@ const jobDetailSection = document.getElementById("job-detail-section");
 const jobDetailTitle = document.getElementById("job-detail-title");
 const jobDetailStatus = document.getElementById("job-detail-status");
 const backToListBtn = document.getElementById("back-to-list-btn");
+const jobDetailView = document.getElementById("job-detail-view");
+const jobDetailInfo = document.getElementById("job-detail-info");
+const jobDetailNotes = document.getElementById("job-detail-notes");
+const editJobBtn = document.getElementById("edit-job-btn");
+const editJobForm = document.getElementById("edit-job-form");
+const cancelEditBtn = document.getElementById("cancel-edit-btn");
 const receiptsSection = document.getElementById("receipts-section");
 const receiptsStaffOnlyNotice = document.getElementById("receipts-staff-only-notice");
 const receiptsTotal = document.getElementById("receipts-total");
@@ -80,6 +86,7 @@ let currentRole = null;
 let unsubscribeReceipts = null;
 let unsubscribeActivity = null;
 let currentJobId = null;
+let currentJob = null;
 
 onAuthChange(async (user) => {
   if (unsubscribeJobs) {
@@ -136,6 +143,43 @@ newLeadForm.addEventListener("submit", async (e) => {
 });
 
 backToListBtn.addEventListener("click", closeJobDetail);
+
+editJobBtn.addEventListener("click", () => {
+  if (!currentJob) return;
+  document.getElementById("edit-customer-name").value = currentJob.customerName ?? "";
+  document.getElementById("edit-address").value = currentJob.address ?? "";
+  document.getElementById("edit-phone").value = currentJob.phone ?? "";
+  document.getElementById("edit-email").value = currentJob.email ?? "";
+  document.getElementById("edit-notes").value = currentJob.notes ?? "";
+  jobDetailView.hidden = true;
+  editJobForm.hidden = false;
+});
+
+cancelEditBtn.addEventListener("click", () => {
+  editJobForm.hidden = true;
+  jobDetailView.hidden = false;
+});
+
+editJobForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  appError.textContent = "";
+  const customerName = document.getElementById("edit-customer-name").value;
+  const address = document.getElementById("edit-address").value;
+  const phone = document.getElementById("edit-phone").value;
+  const email = document.getElementById("edit-email").value;
+  const notes = document.getElementById("edit-notes").value;
+  try {
+    await updateJobDetails(currentJobId, { customerName, address, phone, email, notes });
+    currentJob = { ...currentJob, customerName, address, phone, email, notes };
+    jobDetailTitle.textContent = currentJob.customerName ?? "(no name)";
+    renderJobInfo(jobDetailInfo, currentJob);
+    renderJobNotes(jobDetailNotes, currentJob);
+    editJobForm.hidden = true;
+    jobDetailView.hidden = false;
+  } catch (err) {
+    appError.textContent = "Could not save changes: " + err.message;
+  }
+});
 
 receiptPhotoBtn.addEventListener("click", () => receiptFileInput.click());
 
@@ -212,6 +256,26 @@ function buildJobInfoRow(label, value) {
   return row;
 }
 
+function renderJobInfo(container, job) {
+  container.innerHTML = "";
+  container.appendChild(buildJobInfoRow("Phone:", job.phone || "—"));
+  container.appendChild(buildJobInfoRow("Address:", job.address || "—"));
+  container.appendChild(buildJobInfoRow("Email:", job.email || "—"));
+}
+
+function renderJobNotes(container, job) {
+  container.innerHTML = "";
+  if (!job.notes) {
+    container.hidden = true;
+    return;
+  }
+  container.hidden = false;
+  const label = document.createElement("span");
+  label.textContent = "Notes";
+  container.appendChild(label);
+  container.appendChild(document.createTextNode(job.notes));
+}
+
 function buildJobCard(job) {
   const card = document.createElement("div");
   card.className = "job-card";
@@ -228,20 +292,13 @@ function buildJobCard(job) {
 
   const info = document.createElement("div");
   info.className = "job-card-info";
-  info.appendChild(buildJobInfoRow("Phone:", job.phone || "—"));
-  info.appendChild(buildJobInfoRow("Address:", job.address || "—"));
-  info.appendChild(buildJobInfoRow("Email:", job.email || "—"));
+  renderJobInfo(info, job);
   card.appendChild(info);
 
-  if (job.notes) {
-    const notes = document.createElement("div");
-    notes.className = "job-card-notes";
-    const label = document.createElement("span");
-    label.textContent = "Notes";
-    notes.appendChild(label);
-    notes.appendChild(document.createTextNode(job.notes));
-    card.appendChild(notes);
-  }
+  const notes = document.createElement("div");
+  notes.className = "job-card-notes";
+  renderJobNotes(notes, job);
+  card.appendChild(notes);
 
   if (currentRole === "staff") {
     const nextStages = STAGES.filter((s) => canTransition(job.status, s));
@@ -323,11 +380,17 @@ function renderJobs(jobs) {
 
 function openJobDetail(job) {
   currentJobId = job.id;
+  currentJob = job;
   pipelineSection.hidden = true;
   jobDetailSection.hidden = false;
   jobDetailTitle.textContent = job.customerName ?? "(no name)";
   jobDetailStatus.textContent = job.status;
   jobDetailStatus.className = "stage-badge " + stageBadgeClass(job.status);
+  renderJobInfo(jobDetailInfo, job);
+  renderJobNotes(jobDetailNotes, job);
+  editJobForm.hidden = true;
+  jobDetailView.hidden = false;
+  editJobBtn.hidden = currentRole !== "staff";
   receiptsList.innerHTML = "";
   receiptsTotal.textContent = "";
 
@@ -356,6 +419,7 @@ function closeJobDetail() {
     unsubscribeActivity = null;
   }
   currentJobId = null;
+  currentJob = null;
   jobDetailSection.hidden = true;
   pipelineSection.hidden = false;
 }

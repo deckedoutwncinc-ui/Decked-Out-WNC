@@ -22,6 +22,13 @@ export async function createLead(data) {
   return ref.id;
 }
 
+export async function updateJobDetails(jobId, data) {
+  await updateDoc(doc(db, "jobs", jobId), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 export async function updateJobStage(jobId, currentStatus, newStatus) {
   if (!canTransition(currentStatus, newStatus)) {
     throw new Error(`Cannot transition from ${currentStatus} to ${newStatus}`);
