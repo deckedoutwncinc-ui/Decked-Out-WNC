@@ -65,11 +65,18 @@ export async function sendContractLogic(data, uid, deps = {}) {
   await jobRef.update({ status: "CONTRACT_SENT" });
 
   const signingUrl = `${APP_ORIGIN}/sign.html?token=${token}`;
-  await sendEmailFn({
-    to: job.email,
-    subject: "Your contract from Decked Out WNC",
-    html: `<p>Hi ${job.customerName},</p><p>Please review and sign your contract:</p><p><a href="${signingUrl}">${signingUrl}</a></p>`,
-  });
+  try {
+    await sendEmailFn({
+      to: job.email,
+      subject: "Your contract from Decked Out WNC",
+      html: `<p>Hi ${job.customerName},</p><p>Please review and sign your contract:</p><p><a href="${signingUrl}">${signingUrl}</a></p>`,
+    });
+  } catch (err) {
+    // The contract, documentLinks entry, and job status are already
+    // committed — a failed send email must not report failure for a contract
+    // that was in fact created. Staff have "Resend Signing Link" to recover.
+    console.error("sendContract: failed to send contract email:", err);
+  }
 
   return { ok: true };
 }

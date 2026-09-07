@@ -41,3 +41,18 @@ test("rejects an unknown token", async () => {
 test("rejects a missing token", async () => {
   await assert.rejects(getContractByTokenLogic(undefined), /Missing token/);
 });
+
+test("rejects a link whose kind is not 'contract'", async () => {
+  await db.collection("documentLinks").doc("tok-1").set({ jobId: "job-1", kind: "payment", createdAt: new Date() });
+  await assert.rejects(getContractByTokenLogic("tok-1"), /Invalid or unknown link/);
+});
+
+test("rejects a token that doesn't match the contract's own token", async () => {
+  await db.collection("jobs").doc("job-1").collection("contract").doc("details").update({ token: "some-other-token" });
+  await assert.rejects(getContractByTokenLogic("tok-1"), /Invalid or unknown link/);
+});
+
+test("rejects an orphaned link (no contract doc) with a clean message instead of throwing a raw TypeError", async () => {
+  await db.collection("documentLinks").doc("orphan-tok").set({ jobId: "no-such-job", kind: "contract", createdAt: new Date() });
+  await assert.rejects(getContractByTokenLogic("orphan-tok"), /Invalid or unknown link/);
+});

@@ -21,12 +21,22 @@ export async function getContractByTokenLogic(token, deps = {}) {
   if (!linkSnap.exists) {
     throw new Error("Invalid or unknown link.");
   }
-  const { jobId } = linkSnap.data();
+  const link = linkSnap.data();
+  if (link.kind !== "contract") {
+    throw new Error("Invalid or unknown link.");
+  }
+  const { jobId } = link;
 
   const jobSnap = await db.collection("jobs").doc(jobId).get();
   const contractSnap = await db.collection("jobs").doc(jobId).collection("contract").doc("details").get();
+  if (!jobSnap.exists || !contractSnap.exists) {
+    throw new Error("Invalid or unknown link.");
+  }
   const job = jobSnap.data();
   const contract = contractSnap.data();
+  if (contract.token !== token) {
+    throw new Error("Invalid or unknown link.");
+  }
 
   if (contract.status === "SIGNED") {
     const pdfUrl = await mintUrlFn(contract.pdfPath);
@@ -48,7 +58,7 @@ export async function getContractByTokenLogic(token, deps = {}) {
 export const getContractByToken = onRequest((req, res) => {
   corsHandler(req, res, async () => {
     try {
-      const token = req.method === "GET" ? req.query.token : req.body.token;
+      const token = req.method === "GET" ? req.query?.token : req.body?.token;
       const result = await getContractByTokenLogic(token);
       res.status(200).json(result);
     } catch (err) {

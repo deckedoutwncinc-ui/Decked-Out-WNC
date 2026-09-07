@@ -19,11 +19,21 @@ export async function submitSignatureLogic(data, headers, deps = {}) {
   if (!linkSnap.exists) {
     throw new Error("Invalid or unknown token.");
   }
-  const { jobId } = linkSnap.data();
+  const link = linkSnap.data();
+  if (link.kind !== "contract") {
+    throw new Error("Invalid or unknown token.");
+  }
+  const { jobId } = link;
 
   const contractRef = db.collection("jobs").doc(jobId).collection("contract").doc("details");
   const contractSnap = await contractRef.get();
+  if (!contractSnap.exists) {
+    throw new Error("Invalid or unknown token.");
+  }
   const contract = contractSnap.data();
+  if (contract.token !== token) {
+    throw new Error("Invalid or unknown token.");
+  }
   if (contract.status === "SIGNED") {
     throw new Error("This contract has already been signed.");
   }
@@ -62,12 +72,19 @@ export async function submitSignatureLogic(data, headers, deps = {}) {
   const jobSnap = await db.collection("jobs").doc(jobId).get();
   const job = jobSnap.data();
 
-  await sendEmailFn({
-    to: job.email,
-    subject: "Your signed contract — Decked Out WNC",
-    html: "<p>Thank you for signing! Your signed contract is attached.</p>",
-    attachments: [{ filename: "signed-contract.pdf", content: pdfBuffer.toString("base64") }],
-  });
+  try {
+    await sendEmailFn({
+      to: job.email,
+      subject: "Your signed contract — Decked Out WNC",
+      html: "<p>Thank you for signing! Your signed contract is attached.</p>",
+      attachments: [{ filename: "signed-contract.pdf", content: pdfBuffer.toString("base64") }],
+    });
+  } catch (err) {
+    // The signature and PDF are already committed — a failed confirmation
+    // email must not make a successful signature look like a failure to the
+    // customer. Staff have "Resend Signed PDF" to recover from this.
+    console.error("submitSignature: failed to send confirmation email:", err);
+  }
 
   return { ok: true };
 }

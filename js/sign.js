@@ -25,6 +25,20 @@ function showState(el) {
 
 let signaturePad;
 
+// signature_pad computes stroke coordinates from the canvas element's CSS
+// pixel bounding rect, but draws into the canvas's backing store — which
+// defaults to 300x150 unless width/height are set to match. Without this,
+// ink lands offset from the pointer and the exported signature image is
+// captured at a fixed low resolution regardless of the pad's real on-screen
+// size. Must be called after the container holding the canvas is made
+// visible (offsetWidth/offsetHeight are 0 while it's [hidden]).
+function resizeSignatureCanvas(canvas) {
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  canvas.width = canvas.offsetWidth * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+  canvas.getContext("2d").scale(ratio, ratio);
+}
+
 async function init() {
   if (!token) {
     showState(invalidState);
@@ -45,7 +59,10 @@ async function init() {
     }
     contractTextEl.textContent = data.contractText;
     showState(unsignedState);
-    signaturePad = new SignaturePad(document.getElementById("signature-pad-canvas"));
+    const canvas = document.getElementById("signature-pad-canvas");
+    resizeSignatureCanvas(canvas);
+    signaturePad = new SignaturePad(canvas);
+    signaturePad.clear();
   } catch (err) {
     showState(invalidState);
   }

@@ -1,5 +1,31 @@
 import { PDFDocument, StandardFonts } from "pdf-lib";
 
+// StandardFonts.Helvetica is WinAnsi (Windows-1252) encoded, and pdf-lib's
+// drawText() throws on any character it can't encode. Customer-typed names
+// and staff-pasted scope text can both contain tabs, CRLF, or characters
+// outside WinAnsi (Vietnamese/Cyrillic letters, emoji, "✓", etc.), so
+// everything reaching drawText() must pass through here first rather than
+// let drawText() throw. `\n` is intentionally left alone — wrapText() splits
+// on it before any text reaches drawText(), and it is not itself encodable.
+function sanitizeForFont(text, font) {
+  const expanded = String(text)
+    .replace(/\t/g, "    ")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
+
+  return Array.from(expanded)
+    .map((ch) => {
+      if (ch === "\n") return ch;
+      try {
+        font.encodeText(ch);
+        return ch;
+      } catch {
+        return "?";
+      }
+    })
+    .join("");
+}
+
 function wrapText(text, font, fontSize, maxWidth) {
   const lines = [];
   for (const paragraph of text.split("\n")) {
@@ -33,7 +59,7 @@ export async function generateContractPdf({ contractText, signatureImageBuffer, 
   const lineHeight = 14;
   const maxWidth = pageWidth - margin * 2;
 
-  const lines = wrapText(contractText, font, fontSize, maxWidth);
+  const lines = wrapText(sanitizeForFont(contractText, font), font, fontSize, maxWidth);
 
   let page = pdfDoc.addPage([pageWidth, pageHeight]);
   let y = pageHeight - margin;
@@ -61,7 +87,7 @@ export async function generateContractPdf({ contractText, signatureImageBuffer, 
   page.drawImage(pngImage, { x: margin, y: y - imgDims.height, width: imgDims.width, height: imgDims.height });
   y -= imgDims.height + 4;
 
-  page.drawText(`${signerName} — ${signedAt}`, { x: margin, y, size: 9, font });
+  page.drawText(sanitizeForFont(`${signerName} — ${signedAt}`, font), { x: margin, y, size: 9, font });
 
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);

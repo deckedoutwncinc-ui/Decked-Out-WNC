@@ -42,6 +42,17 @@ test("creates a contract doc, a documentLinks entry, and advances the job to CON
   assert.ok(sentEmail.html.includes(contractSnap.data().token));
 });
 
+test("still returns success when the contract email send fails", async () => {
+  await sendContractLogic(
+    { jobId: "job-1", bidAmount: 10000, scopeOfWork: "Build a 12x14 deck.", depositPercent: 30 },
+    "staff-uid",
+    { sendEmailFn: async () => { throw new Error("Resend rejected the request."); } }
+  );
+
+  const jobSnap = await db.collection("jobs").doc("job-1").get();
+  assert.equal(jobSnap.data().status, "CONTRACT_SENT");
+});
+
 test("rejects a non-staff caller", async () => {
   await assert.rejects(
     sendContractLogic(
