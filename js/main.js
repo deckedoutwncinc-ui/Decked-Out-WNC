@@ -124,8 +124,11 @@ newLeadForm.addEventListener("submit", async (e) => {
   appError.textContent = "";
   const customerName = document.getElementById("lead-customer-name").value;
   const address = document.getElementById("lead-address").value;
+  const phone = document.getElementById("lead-phone").value;
+  const email = document.getElementById("lead-email").value;
+  const notes = document.getElementById("lead-notes").value;
   try {
-    await createLead({ customerName, address });
+    await createLead({ customerName, address, phone, email, notes });
     newLeadForm.reset();
   } catch (err) {
     appError.textContent = "Could not add lead: " + err.message;
@@ -200,9 +203,19 @@ addActivityForm.addEventListener("submit", async (e) => {
   }
 });
 
+function buildJobInfoRow(label, value) {
+  const row = document.createElement("div");
+  const span = document.createElement("span");
+  span.textContent = label;
+  row.appendChild(span);
+  row.appendChild(document.createTextNode(value));
+  return row;
+}
+
 function buildJobCard(job) {
   const card = document.createElement("div");
   card.className = "job-card";
+  card.addEventListener("click", () => openJobDetail(job));
 
   const title = document.createElement("h3");
   title.textContent = job.customerName ?? "(no name)";
@@ -213,11 +226,29 @@ function buildJobCard(job) {
   badge.textContent = job.status;
   card.appendChild(badge);
 
+  const info = document.createElement("div");
+  info.className = "job-card-info";
+  info.appendChild(buildJobInfoRow("Phone:", job.phone || "—"));
+  info.appendChild(buildJobInfoRow("Address:", job.address || "—"));
+  info.appendChild(buildJobInfoRow("Email:", job.email || "—"));
+  card.appendChild(info);
+
+  if (job.notes) {
+    const notes = document.createElement("div");
+    notes.className = "job-card-notes";
+    const label = document.createElement("span");
+    label.textContent = "Notes";
+    notes.appendChild(label);
+    notes.appendChild(document.createTextNode(job.notes));
+    card.appendChild(notes);
+  }
+
   if (currentRole === "staff") {
     const nextStages = STAGES.filter((s) => canTransition(job.status, s));
     if (nextStages.length > 0) {
       const select = document.createElement("select");
       select.className = "stage-select";
+      select.addEventListener("click", (e) => e.stopPropagation());
       const placeholder = document.createElement("option");
       placeholder.textContent = "Advance to...";
       placeholder.value = "";
@@ -228,7 +259,8 @@ function buildJobCard(job) {
         opt.textContent = stage;
         select.appendChild(opt);
       }
-      select.addEventListener("change", async () => {
+      select.addEventListener("change", async (e) => {
+        e.stopPropagation();
         if (!select.value) return;
         appError.textContent = "";
         try {
@@ -241,12 +273,6 @@ function buildJobCard(job) {
       card.appendChild(select);
     }
   }
-
-  const detailBtn = document.createElement("button");
-  detailBtn.className = "btn-quiet";
-  detailBtn.textContent = "View Details";
-  detailBtn.addEventListener("click", () => openJobDetail(job));
-  card.appendChild(detailBtn);
 
   return card;
 }

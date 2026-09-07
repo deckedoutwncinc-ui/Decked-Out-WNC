@@ -137,6 +137,7 @@
     .stage-select {
       display: block;
       width: 100%;
+      min-height: 44px;
       background: var(--cedar);
       color: var(--chalk);
       border: none;
@@ -205,6 +206,7 @@
       align-items: center;
     }
     #new-lead-form input, #add-receipt-form input { flex: 1 1 160px; }
+    #new-lead-form textarea { flex-basis: 100%; min-height: 60px; }
     #new-lead-form button, #add-receipt-form button { flex: 0 0 auto; }
     #add-receipt-form .photo-capture-btn,
     #add-receipt-form #receipt-file-status { flex-basis: 100%; }
@@ -229,13 +231,14 @@
       justify-content: space-between;
       gap: 0.5rem;
       width: 100%;
+      min-height: 44px;
       background: var(--chalk);
       border: 1px solid var(--plank-line);
       border-radius: var(--r-btn);
       padding: 8px 12px;
       font-family: inherit;
       font-size: 0.85rem;
-      font-weight: 600;
+      font-weight: 700;
       color: var(--bark);
       cursor: pointer;
       text-align: left;
@@ -270,10 +273,33 @@
       padding: 1rem 1.25rem;
       margin-bottom: 0.75rem;
       box-shadow: 0 1px 3px rgba(43,36,28,.06), 0 1px 2px rgba(43,36,28,.04);
+      cursor: pointer;
       transition: box-shadow .15s, border-color .15s;
     }
     .job-card:hover { border-color: var(--slate); box-shadow: 0 4px 12px rgba(43,36,28,.1); }
-    .job-card h3 { margin: 0 0 0.4rem 0; }
+    .job-card h3 { margin: 0 0 0.5rem 0; }
+
+    .job-card-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.2rem 1rem;
+      margin: 0.6rem 0;
+      font-size: 0.88rem;
+      color: var(--bark);
+    }
+    .job-card-info div span { color: var(--slate); font-weight: 600; margin-right: 0.35rem; }
+
+    .job-card-notes {
+      margin: 0.6rem 0 0;
+      padding: 0.5rem 0.7rem;
+      background: rgba(43,36,28,.04);
+      border-left: 3px solid var(--cedar);
+      border-radius: 0 4px 4px 0;
+      font-size: 0.85rem;
+      color: var(--bark);
+      white-space: pre-wrap;
+    }
+    .job-card-notes span { color: var(--slate); font-weight: 600; display: block; margin-bottom: 0.15rem; }
 
     .stage-badge {
       display: inline-block;
@@ -287,8 +313,6 @@
     }
     .stage-badge.stage-won { background: var(--moss); }
     .stage-badge.stage-lost { background: var(--rust); }
-
-    .job-card .btn-quiet { margin-top: 0.6rem; }
 
     #job-detail-section #back-to-list-btn { margin-bottom: 1rem; }
     #job-detail-title { margin-bottom: 0.3rem; }
@@ -384,6 +408,9 @@
             <form id="new-lead-form">
               <input type="text" id="lead-customer-name" placeholder="Customer name" required />
               <input type="text" id="lead-address" placeholder="Job address" required />
+              <input type="tel" id="lead-phone" placeholder="Phone (optional)" />
+              <input type="email" id="lead-email" placeholder="Email (optional)" />
+              <textarea id="lead-notes" placeholder="Special notes (optional)"></textarea>
               <button type="submit" class="btn-primary">Add Lead</button>
             </form>
           </div>
