@@ -3,6 +3,7 @@ import { createLead, updateJobStage, updateJobDetails, listJobs } from "./jobs.j
 import { STAGES, canTransition } from "./pipeline.js";
 import { uploadReceipt, listReceipts } from "./receipts.js";
 import { postActivity, listActivity } from "./activity.js";
+import { sendContract, resendContractLink, resendContractPdf, getContractPdfUrl, listContract } from "./contracts.js";
 
 function formatDateMDY(isoDate) {
   const [year, month, day] = isoDate.split("-");
@@ -80,11 +81,16 @@ const activityTextInput = document.getElementById("activity-text");
 const activityPhotoBtn = document.getElementById("activity-photo-btn");
 const activityFileInput = document.getElementById("activity-file");
 const activityFileStatus = document.getElementById("activity-file-status");
+const contractSection = document.getElementById("contract-section");
+const contractStatus = document.getElementById("contract-status");
+const contractStaffOnlyNotice = document.getElementById("contract-staff-only-notice");
+const sendContractForm = document.getElementById("send-contract-form");
 
 let unsubscribeJobs = null;
 let currentRole = null;
 let unsubscribeReceipts = null;
 let unsubscribeActivity = null;
+let unsubscribeContract = null;
 let currentJobId = null;
 let currentJob = null;
 
@@ -244,6 +250,21 @@ addActivityForm.addEventListener("submit", async (e) => {
     activityFileStatus.classList.remove("has-file");
   } catch (err) {
     appError.textContent = "Could not post update: " + err.message;
+  }
+});
+
+sendContractForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  appError.textContent = "";
+  const bidAmount = document.getElementById("contract-bid-amount").value;
+  const scopeOfWork = document.getElementById("contract-scope").value;
+  const depositPercent = document.getElementById("contract-deposit-percent").value;
+  try {
+    await sendContract({ jobId: currentJobId, bidAmount, scopeOfWork, depositPercent });
+    currentJob = { ...currentJob, status: "CONTRACT_SENT" };
+    sendContractForm.reset();
+  } catch (err) {
+    appError.textContent = "Could not send contract: " + err.message;
   }
 });
 
@@ -407,6 +428,9 @@ function openJobDetail(job) {
   if (unsubscribeActivity) unsubscribeActivity();
   activityList.innerHTML = "";
   unsubscribeActivity = listActivity(currentJobId, renderActivity);
+
+  if (unsubscribeContract) unsubscribeContract();
+  unsubscribeContract = listContract(currentJobId, renderContract);
 }
 
 function closeJobDetail() {
@@ -417,6 +441,10 @@ function closeJobDetail() {
   if (unsubscribeActivity) {
     unsubscribeActivity();
     unsubscribeActivity = null;
+  }
+  if (unsubscribeContract) {
+    unsubscribeContract();
+    unsubscribeContract = null;
   }
   currentJobId = null;
   currentJob = null;
@@ -474,5 +502,85 @@ function renderActivity(entries) {
     row.appendChild(body);
 
     activityList.appendChild(row);
+  }
+}
+
+function renderContract(contract) {
+  if (currentRole !== "staff") {
+    contractSection.hidden = true;
+    contractStaffOnlyNotice.hidden = false;
+    return;
+  }
+  contractSection.hidden = false;
+  contractStaffOnlyNotice.hidden = true;
+
+  if (!contract) {
+    sendContractForm.hidden = currentJob.status !== "WON";
+    contractStatus.textContent = currentJob.status === "WON"
+      ? "No contract sent yet."
+      : "A contract can be sent once this job is Won.";
+    return;
+  }
+
+  sendContractForm.hidden = true;
+  contractStatus.innerHTML = "";
+
+  if (contract.status === "SENT") {
+    const p = document.createElement("p");
+    p.textContent = `Sent to ${currentJob.email} — awaiting signature.`;
+    contractStatus.appendChild(p);
+
+    const resendBtn = document.createElement("button");
+    resendBtn.type = "button";
+    resendBtn.className = "btn-quiet";
+    resendBtn.textContent = "Resend Signing Link";
+    resendBtn.addEventListener("click", async () => {
+      appError.textContent = "";
+      try {
+        await resendContractLink(currentJobId);
+      } catch (err) {
+        appError.textContent = "Could not resend link: " + err.message;
+      }
+    });
+    contractStatus.appendChild(resendBtn);
+    return;
+  }
+
+  if (contract.status === "SIGNED") {
+    const signedDate = contract.signedAt?.toDate
+      ? contract.signedAt.toDate().toLocaleDateString("en-US")
+      : "";
+    const p = document.createElement("p");
+    p.textContent = `Signed by ${contract.signerName} on ${signedDate}.`;
+    contractStatus.appendChild(p);
+
+    const viewBtn = document.createElement("button");
+    viewBtn.type = "button";
+    viewBtn.className = "btn-quiet";
+    viewBtn.textContent = "View/Download PDF";
+    viewBtn.addEventListener("click", async () => {
+      appError.textContent = "";
+      try {
+        const url = await getContractPdfUrl(currentJobId);
+        window.open(url, "_blank");
+      } catch (err) {
+        appError.textContent = "Could not open PDF: " + err.message;
+      }
+    });
+    contractStatus.appendChild(viewBtn);
+
+    const resendPdfBtn = document.createElement("button");
+    resendPdfBtn.type = "button";
+    resendPdfBtn.className = "btn-quiet";
+    resendPdfBtn.textContent = "Resend Signed PDF";
+    resendPdfBtn.addEventListener("click", async () => {
+      appError.textContent = "";
+      try {
+        await resendContractPdf(currentJobId);
+      } catch (err) {
+        appError.textContent = "Could not resend PDF: " + err.message;
+      }
+    });
+    contractStatus.appendChild(resendPdfBtn);
   }
 }
