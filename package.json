@@ -5,7 +5,8 @@
   "scripts": {
     "test:unit": "node --test \"tests/unit/**/*.test.js\"",
     "test:rules": "firebase emulators:exec --project deckedoutwnc-test --only firestore,storage \"node --test --test-concurrency=1 tests/rules/**/*.test.js\"",
-    "emulators": "firebase emulators:start --only firestore,auth,storage"
+    "test:functions": "firebase emulators:exec --project deckedoutwnc-test --only firestore,auth,storage \"node --env-file=functions/.secret.local --test --test-concurrency=1 functions/test/**/*.test.js\"",
+    "emulators": "firebase emulators:start --only firestore,auth,storage,functions"
   },
   "devDependencies": {
     "firebase-tools": "^13.29.0",

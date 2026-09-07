@@ -6,3 +6,4 @@ ui-debug.log
 *.log
 .git-credentials-local
 local-secrets.txt
+functions/.secret.local
