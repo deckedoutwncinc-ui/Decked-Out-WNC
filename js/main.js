@@ -429,6 +429,13 @@ function openJobDetail(job) {
   activityList.innerHTML = "";
   unsubscribeActivity = listActivity(currentJobId, renderActivity);
 
+  if (currentRole === "staff") {
+    contractSection.hidden = false;
+    contractStaffOnlyNotice.hidden = true;
+  } else {
+    contractSection.hidden = true;
+    contractStaffOnlyNotice.hidden = false;
+  }
   if (unsubscribeContract) unsubscribeContract();
   unsubscribeContract = listContract(currentJobId, renderContract);
 }
