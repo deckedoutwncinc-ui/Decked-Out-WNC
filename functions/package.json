@@ -2,13 +2,16 @@
   "name": "decked-out-wnc-functions",
   "private": true,
   "type": "module",
-  "engines": { "node": "20" },
+  "engines": {
+    "node": "20"
+  },
   "main": "index.js",
   "dependencies": {
+    "cors": "^2.8.5",
     "firebase-admin": "^12.6.0",
     "firebase-functions": "^5.1.0",
-    "resend": "^4.0.0",
+    "pdf-lib": "^1.17.1",
     "pdfmake": "^0.2.12",
-    "cors": "^2.8.5"
+    "resend": "^4.0.0"
   }
 }
