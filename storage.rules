@@ -33,6 +33,11 @@ service firebase.storage {
       allow delete: if isStaff();
     }
 
+    match /jobs/{jobId}/contract/{fileName} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

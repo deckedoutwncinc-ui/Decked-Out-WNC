@@ -36,6 +36,14 @@ service cloud.firestore {
       allow read, write: if isStaff();
     }
 
+    match /jobs/{jobId}/contract/{docId} {
+      allow read, write: if isStaff();
+    }
+
+    match /documentLinks/{token} {
+      allow read, write: if false;
+    }
+
     match /jobs/{jobId}/activity/{entryId} {
       function isAssignedToJob() {
         return isCrew() &&
